@@ -84,7 +84,7 @@ fn reconstruct_path(parents: HashMap<Point, Point>, current: Point) -> Vec<Point
 
 
 // --- Основная функция A* ---
-
+// Делаем коммит для публикации. СУПЕР!
 // Находит путь от `start` до `goal`, избегая точек из `obstacles`.
 fn find_path(start: Point, goal: Point, obstacles: &HashSet<Point>) -> Option<Vec<Point>> {
     // BinaryHeap - это эффективная очередь с приоритетом. Наш "open list".
