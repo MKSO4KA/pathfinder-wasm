@@ -1,0 +1,14 @@
+{
+  "name": "pathfinder",
+  "collaborators": [
+    "Mixailka MKSK <mk06ru@gmail.com>"
+  ],
+  "version": "0.2.0",
+  "files": [
+    "pathfinder_bg.wasm",
+    "pathfinder.js",
+    "pathfinder.d.ts"
+  ],
+  "browser": "pathfinder.js",
+  "types": "pathfinder.d.ts"
+}
