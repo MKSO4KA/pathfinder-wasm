@@ -1,0 +1,14 @@
+[package]
+name = "pathfinder"
+version = "0.2.0"
+authors = ["Mixailka MKSK <mk06ru@gmail.com>"]
+edition = "2021"
+
+# Этот блок указывает, что мы создаем динамическую библиотеку,
+# подходящую для WebAssembly.
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Главный инструмент для связи Rust и JavaScript.
+wasm-bindgen = "0.2"
