@@ -71,7 +71,7 @@ rmdir /s /q pkg
 echo Committing and pushing to 'gh-pages'...
 git add pathfinder_bg.wasm pathfinder.js
 git commit -m "deploy: Build from commit main@%LAST_COMMIT_HASH%"
-git push origin --force gh-pages
+git push --force-with-lease origin gh-pages
 if %errorlevel% neq 0 (
     echo Error: Failed to push changes to 'gh-pages'.
     git checkout main
