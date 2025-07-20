@@ -69,14 +69,14 @@ fn find_path_grid(
 
         log!("[Rust/Grid] Popped node: ({}, {}), g: {}, h: {}, f: {}", current_pos.x, current_pos.y, current_g, current_node.h, current_node.f());
 
-        if current_g > *g_scores.get(¤t_pos).unwrap_or(&i32::MAX) { continue; }
+        if current_g > *g_scores.get(&current_pos).unwrap_or(&i32::MAX) { continue; }
 
         if current_pos == goal {
             log!("[Rust/Grid] Цель достигнута в узле ({}, {})!", current_pos.x, current_pos.y);
             return Some(reconstruct_path_grid(parents, current_pos));
         }
 
-        if let Some(exit_pos) = teleporters.get(¤t_pos) {
+        if let Some(exit_pos) = teleporters.get(&current_pos) {
             let tentative_g_score = current_g + 1;
             if tentative_g_score < *g_scores.get(exit_pos).unwrap_or(&i32::MAX) {
                 parents.insert(*exit_pos, current_pos);
@@ -170,7 +170,7 @@ fn find_path_physics(
         let current_state = current_node.state;
         let current_g = current_node.g;
 
-        if current_g > *g_scores.get(¤t_state).unwrap_or(&i32::MAX) { continue; }
+        if current_g > *g_scores.get(&current_state).unwrap_or(&i32::MAX) { continue; }
         if current_state.x == goal_pos.x && current_state.y == goal_pos.y {
             log!("[Rust/Physics] Цель достигнута!");
             let mut path = vec![Point{x: current_state.x, y: current_state.y}];
