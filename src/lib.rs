@@ -38,6 +38,7 @@ fn reconstruct_path_grid(parents: HashMap<Point, Point>, current: Point) -> Vec<
         total_path.push(*parent);
         temp = *parent;
     }
+    log!("[Rust/Grid] Path reconstructed with {} points.", total_path.len());
     total_path.reverse();
     total_path
 }
@@ -49,7 +50,11 @@ fn find_path_grid(
     zone_types: &HashMap<Point, i32>,
     teleporters: &HashMap<Point, Point>
 ) -> Option<Vec<Point>> {
-    log!("[Rust/Grid] Запуск поиска на сетке.");
+    if start == goal {
+        log!("[Rust/Grid] Start equals Goal. Returning single point path.");
+        return Some(vec![start]);
+    }
+
     let mut open_list = BinaryHeap::new();
     let mut g_scores = HashMap::new();
     let mut parents: HashMap<Point, Point> = HashMap::new();
@@ -62,6 +67,7 @@ fn find_path_grid(
         let current_g = current_node.g;
 
         if current_g > *g_scores.get(&current_pos).unwrap_or(&i32::MAX) { continue; }
+
         if current_pos == goal {
             log!("[Rust/Grid] Цель достигнута!");
             return Some(reconstruct_path_grid(parents, current_pos));
@@ -70,7 +76,6 @@ fn find_path_grid(
         if let Some(exit_pos) = teleporters.get(&current_pos) {
             let tentative_g_score = current_g + 1;
             if tentative_g_score < *g_scores.get(exit_pos).unwrap_or(&i32::MAX) {
-                log!("[Rust/Grid] Найден путь через телепорт из {:?} в {:?}", current_pos, exit_pos);
                 parents.insert(*exit_pos, current_pos);
                 g_scores.insert(*exit_pos, tentative_g_score);
                 open_list.push(GridNode { position: *exit_pos, g: tentative_g_score, h: heuristic_grid(*exit_pos, goal) });
@@ -199,26 +204,43 @@ fn find_path_physics(
 // ================================================================================= //
 
 #[wasm_bindgen]
-pub fn find_path_on_grid_wasm(
-    start_x: i32, start_y: i32,
-    goal_x: i32, goal_y: i32,
-    costs_flat: &[i32],
-    zone_types_flat: &[i32],
-    teleporters_flat: &[i32],
-    _player_skill: &str,
-) -> Vec<i32> {
-    let start = Point { x: start_x, y: start_y };
-    let goal = Point { x: goal_x, y: goal_y };
+pub fn find_path_on_grid_wasm(data: &[i32]) -> Vec<i32> {
+    // --- Распаковка данных ---
+    if data.len() < 7 {
+        log!("[Rust/Grid] Error: Input data is too short!");
+        return vec![];
+    }
+    let start = Point { x: data[0], y: data[1] };
+    let goal = Point { x: data[2], y: data[3] };
+    let costs_len = data[4] as usize;
+    let zone_types_len = data[5] as usize;
+    let teleporters_len = data[6] as usize;
+
+    log!("[Rust/Grid] Wasm received. Start: ({}, {}), Goal: ({}, {})", start.x, start.y, goal.x, goal.y);
+
+    let mut current_offset = 7;
 
     let mut costs = HashMap::new();
-    for chunk in costs_flat.chunks_exact(3) { costs.insert(Point { x: chunk[0], y: chunk[1] }, chunk[2]); }
+    if costs_len > 0 {
+        let costs_slice = &data[current_offset..current_offset + costs_len];
+        for chunk in costs_slice.chunks_exact(3) { costs.insert(Point { x: chunk[0], y: chunk[1] }, chunk[2]); }
+    }
+    current_offset += costs_len;
 
     let mut zone_types = HashMap::new();
-    for chunk in zone_types_flat.chunks_exact(3) { zone_types.insert(Point { x: chunk[0], y: chunk[1] }, chunk[2]); }
+    if zone_types_len > 0 {
+        let zone_types_slice = &data[current_offset..current_offset + zone_types_len];
+        for chunk in zone_types_slice.chunks_exact(3) { zone_types.insert(Point { x: chunk[0], y: chunk[1] }, chunk[2]); }
+    }
+    current_offset += zone_types_len;
 
     let mut teleporters = HashMap::new();
-    for chunk in teleporters_flat.chunks_exact(4) { teleporters.insert(Point { x: chunk[0], y: chunk[1] }, Point { x: chunk[2], y: chunk[3] }); }
+    if teleporters_len > 0 {
+        let teleporters_slice = &data[current_offset..current_offset + teleporters_len];
+        for chunk in teleporters_slice.chunks_exact(4) { teleporters.insert(Point { x: chunk[0], y: chunk[1] }, Point { x: chunk[2], y: chunk[3] }); }
+    }
 
+    // --- Вызов основной логики ---
     let result = find_path_grid(start, goal, &costs, &zone_types, &teleporters);
     result.map_or(vec![], |path| path.into_iter().flat_map(|p| [p.x, p.y]).collect())
 }
