@@ -50,6 +50,7 @@ fn find_path_grid(
     zone_types: &HashMap<Point, i32>,
     teleporters: &HashMap<Point, Point>
 ) -> Option<Vec<Point>> {
+    log!("[Rust/Grid] A* algorithm started.");
     if start == goal {
         log!("[Rust/Grid] Start equals Goal. Returning single point path.");
         return Some(vec![start]);
@@ -66,18 +67,16 @@ fn find_path_grid(
         let current_pos = current_node.position;
         let current_g = current_node.g;
 
-        // ================= ИЗМЕНЕНИЕ: Детальный лог каждого шага =================
         log!("[Rust/Grid] Popped node: ({}, {}), g: {}, h: {}, f: {}", current_pos.x, current_pos.y, current_g, current_node.h, current_node.f());
-        // ========================================================================
 
-        if current_g > *g_scores.get(&current_pos).unwrap_or(&i32::MAX) { continue; }
+        if current_g > *g_scores.get(¤t_pos).unwrap_or(&i32::MAX) { continue; }
 
         if current_pos == goal {
             log!("[Rust/Grid] Цель достигнута в узле ({}, {})!", current_pos.x, current_pos.y);
             return Some(reconstruct_path_grid(parents, current_pos));
         }
 
-        if let Some(exit_pos) = teleporters.get(&current_pos) {
+        if let Some(exit_pos) = teleporters.get(¤t_pos) {
             let tentative_g_score = current_g + 1;
             if tentative_g_score < *g_scores.get(exit_pos).unwrap_or(&i32::MAX) {
                 parents.insert(*exit_pos, current_pos);
@@ -171,7 +170,7 @@ fn find_path_physics(
         let current_state = current_node.state;
         let current_g = current_node.g;
 
-        if current_g > *g_scores.get(&current_state).unwrap_or(&i32::MAX) { continue; }
+        if current_g > *g_scores.get(¤t_state).unwrap_or(&i32::MAX) { continue; }
         if current_state.x == goal_pos.x && current_state.y == goal_pos.y {
             log!("[Rust/Physics] Цель достигнута!");
             let mut path = vec![Point{x: current_state.x, y: current_state.y}];
@@ -209,40 +208,52 @@ fn find_path_physics(
 
 #[wasm_bindgen]
 pub fn find_path_on_grid_wasm(data: &[i32]) -> Vec<i32> {
+    log!("[Rust] Wasm function entered. Total data length: {}", data.len());
     if data.len() < 7 {
-        log!("[Rust/Grid] Error: Input data is too short!");
+        log!("[Rust] Error: Input data is too short!");
         return vec![];
     }
+
+    // --- Распаковка данных с подробными логами ---
     let start = Point { x: data[0], y: data[1] };
     let goal = Point { x: data[2], y: data[3] };
+    log!("[Rust] Unpacked Start: ({}, {}), Goal: ({}, {})", start.x, start.y, goal.x, goal.y);
+
     let costs_len = data[4] as usize;
     let zone_types_len = data[5] as usize;
     let teleporters_len = data[6] as usize;
-
-    log!("[Rust/Grid] Wasm received. Start: ({}, {}), Goal: ({}, {})", start.x, start.y, goal.x, goal.y);
+    log!("[Rust] Unpacked lengths -> Costs: {}, Zones: {}, Teleporters: {}", costs_len, zone_types_len, teleporters_len);
 
     let mut current_offset = 7;
 
     let mut costs = HashMap::new();
     if costs_len > 0 {
+        log!("[Rust] Parsing costs... Offset: {}, Length: {}", current_offset, costs_len);
         let costs_slice = &data[current_offset..current_offset + costs_len];
         for chunk in costs_slice.chunks_exact(3) { costs.insert(Point { x: chunk[0], y: chunk[1] }, chunk[2]); }
+        log!("[Rust] Costs parsed successfully.");
     }
     current_offset += costs_len;
 
     let mut zone_types = HashMap::new();
     if zone_types_len > 0 {
+        log!("[Rust] Parsing zone types... Offset: {}, Length: {}", current_offset, zone_types_len);
         let zone_types_slice = &data[current_offset..current_offset + zone_types_len];
         for chunk in zone_types_slice.chunks_exact(3) { zone_types.insert(Point { x: chunk[0], y: chunk[1] }, chunk[2]); }
+        log!("[Rust] Zone types parsed successfully.");
     }
     current_offset += zone_types_len;
 
     let mut teleporters = HashMap::new();
     if teleporters_len > 0 {
+        log!("[Rust] Parsing teleporters... Offset: {}, Length: {}", current_offset, teleporters_len);
         let teleporters_slice = &data[current_offset..current_offset + teleporters_len];
         for chunk in teleporters_slice.chunks_exact(4) { teleporters.insert(Point { x: chunk[0], y: chunk[1] }, Point { x: chunk[2], y: chunk[3] }); }
+        log!("[Rust] Teleporters parsed successfully.");
     }
 
+    log!("[Rust] Data unpacking complete. Calling A* algorithm...");
+    // --- Вызов основной логики ---
     let result = find_path_grid(start, goal, &costs, &zone_types, &teleporters);
     result.map_or(vec![], |path| path.into_iter().flat_map(|p| [p.x, p.y]).collect())
 }
