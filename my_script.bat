@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 REM =============================================
-REM == BUILD AND DEPLOY SCRIPT ==
+REM == BUILD AND DEPLOY SCRIPT (v3 - Robust)   ==
 REM =============================================
 
 REM Step 0: Prompt for commit message
@@ -19,11 +19,11 @@ echo Step 1: Committing and pushing changes to 'main'...
 git checkout main
 if %errorlevel% neq 0 (
     echo Error: Failed to switch to 'main' branch.
+    pause
     goto :eof
 )
 git add .
 
-REM Using !COMMIT_MSG! for safe handling of special characters
 git commit -m "!COMMIT_MSG!"
 if %errorlevel% neq 0 (
     echo Warning: Nothing to commit, maybe. Script will continue.
@@ -32,6 +32,7 @@ if %errorlevel% neq 0 (
 git push origin main
 if %errorlevel% neq 0 (
     echo Error: Failed to push changes to 'main'.
+    pause
     goto :eof
 )
 echo OK: Changes pushed to 'main' successfully.
@@ -43,6 +44,7 @@ echo Step 2: Building Wasm module...
 wasm-pack build --target web
 if %errorlevel% neq 0 (
     echo Error: Wasm build failed.
+    pause
     goto :eof
 )
 echo OK: Wasm build finished.
@@ -54,43 +56,57 @@ git checkout gh-pages
 if %errorlevel% neq 0 (
     echo Error: Failed to switch to 'gh-pages'.
     git checkout main
+    pause
     goto :eof
 )
 
-REM =================================================================
-REM == КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Синхронизация с удаленным репозиторием ==
-REM =================================================================
 echo Synchronizing with remote 'gh-pages' branch...
 git fetch origin
 git reset --hard origin/gh-pages
 if %errorlevel% neq 0 (
     echo Error: Failed to reset local branch to remote state.
     git checkout main
+    pause
     goto :eof
 )
 
 echo Moving build artifacts and cleaning up...
 if not exist "pkg\pathfinder_bg.wasm" (
-    echo Error: Build files not found in 'pkg' directory.
+    echo Error: Build file pathfinder_bg.wasm not found in 'pkg' directory.
     git checkout main
+    pause
     goto :eof
 )
 
-move pkg\pathfinder_bg.wasm .
-move pkg\pathfinder.js .
+move "pkg\pathfinder_bg.wasm" .
+if %errorlevel% neq 0 (
+    echo Error: Failed to move pathfinder_bg.wasm.
+    git checkout main
+    pause
+    goto :eof
+)
+move "pkg\pathfinder.js" .
+if %errorlevel% neq 0 (
+    echo Error: Failed to move pathfinder.js.
+    git checkout main
+    pause
+    goto :eof
+)
+
 rmdir /s /q pkg
 
 echo Committing and pushing to 'gh-pages'...
-git add .
+git add pathfinder_bg.wasm pathfinder.js
 git commit -m "deploy: Build from commit main@%LAST_COMMIT_HASH%"
+if %errorlevel% neq 0 (
+    echo Warning: Nothing new to commit. Build artifacts might be identical to the previous deployment.
+)
 
-REM =================================================================
-REM == КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Теперь можно использовать обычный push ==
-REM =================================================================
 git push origin gh-pages
 if %errorlevel% neq 0 (
     echo Error: Failed to push changes to 'gh-pages'.
     git checkout main
+    pause
     goto :eof
 )
 echo OK: Artifacts deployed successfully.
