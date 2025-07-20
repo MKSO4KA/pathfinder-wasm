@@ -57,6 +57,18 @@ if %errorlevel% neq 0 (
     goto :eof
 )
 
+REM =================================================================
+REM == КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Синхронизация с удаленным репозиторием ==
+REM =================================================================
+echo Synchronizing with remote 'gh-pages' branch...
+git fetch origin
+git reset --hard origin/gh-pages
+if %errorlevel% neq 0 (
+    echo Error: Failed to reset local branch to remote state.
+    git checkout main
+    goto :eof
+)
+
 echo Moving build artifacts and cleaning up...
 if not exist "pkg\pathfinder_bg.wasm" (
     echo Error: Build files not found in 'pkg' directory.
@@ -71,7 +83,11 @@ rmdir /s /q pkg
 echo Committing and pushing to 'gh-pages'...
 git add pathfinder_bg.wasm pathfinder.js
 git commit -m "deploy: Build from commit main@%LAST_COMMIT_HASH%"
-git push --force-with-lease origin gh-pages
+
+REM =================================================================
+REM == КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Теперь можно использовать обычный push ==
+REM =================================================================
+git push origin gh-pages
 if %errorlevel% neq 0 (
     echo Error: Failed to push changes to 'gh-pages'.
     git checkout main
