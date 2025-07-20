@@ -81,7 +81,7 @@ move pkg\pathfinder.js .
 rmdir /s /q pkg
 
 echo Committing and pushing to 'gh-pages'...
-git add pathfinder_bg.wasm pathfinder.js
+git add .
 git commit -m "deploy: Build from commit main@%LAST_COMMIT_HASH%"
 
 REM =================================================================
