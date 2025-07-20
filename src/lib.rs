@@ -66,10 +66,14 @@ fn find_path_grid(
         let current_pos = current_node.position;
         let current_g = current_node.g;
 
+        // ================= ИЗМЕНЕНИЕ: Детальный лог каждого шага =================
+        log!("[Rust/Grid] Popped node: ({}, {}), g: {}, h: {}, f: {}", current_pos.x, current_pos.y, current_g, current_node.h, current_node.f());
+        // ========================================================================
+
         if current_g > *g_scores.get(&current_pos).unwrap_or(&i32::MAX) { continue; }
 
         if current_pos == goal {
-            log!("[Rust/Grid] Цель достигнута!");
+            log!("[Rust/Grid] Цель достигнута в узле ({}, {})!", current_pos.x, current_pos.y);
             return Some(reconstruct_path_grid(parents, current_pos));
         }
 
@@ -205,7 +209,6 @@ fn find_path_physics(
 
 #[wasm_bindgen]
 pub fn find_path_on_grid_wasm(data: &[i32]) -> Vec<i32> {
-    // --- Распаковка данных ---
     if data.len() < 7 {
         log!("[Rust/Grid] Error: Input data is too short!");
         return vec![];
@@ -240,7 +243,6 @@ pub fn find_path_on_grid_wasm(data: &[i32]) -> Vec<i32> {
         for chunk in teleporters_slice.chunks_exact(4) { teleporters.insert(Point { x: chunk[0], y: chunk[1] }, Point { x: chunk[2], y: chunk[3] }); }
     }
 
-    // --- Вызов основной логики ---
     let result = find_path_grid(start, goal, &costs, &zone_types, &teleporters);
     result.map_or(vec![], |path| path.into_iter().flat_map(|p| [p.x, p.y]).collect())
 }
