@@ -51,6 +51,7 @@ fn find_path_grid(
     teleporters: &HashMap<Point, Point>
 ) -> Option<Vec<Point>> {
     if start == goal {
+        log!("[Rust/Grid] A* algorithm: Start equals Goal. Returning single point path.");
         return Some(vec![start]);
     }
 
@@ -211,6 +212,9 @@ pub fn find_path_on_grid_wasm(
     zone_types_flat: &[i32],
     teleporters_flat: &[i32]
 ) -> Vec<i32> {
+    // --- ГЛАВНОЕ ИСПРАВЛЕНИЕ: Логируем реальные переменные, а не константы ---
+    log!("[Rust/Grid] Wasm received. Start: ({}, {}), Goal: ({}, {})", start_x, start_y, goal_x, goal_y);
+
     let start = Point { x: start_x, y: start_y };
     let goal = Point { x: goal_x, y: goal_y };
 
