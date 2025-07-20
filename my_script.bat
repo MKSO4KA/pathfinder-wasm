@@ -1,60 +1,65 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM ==============================================================================
-REM == ПОЛНОСТЬЮ АВТОМАТИЗИРОВАННЫЙ СКРИПТ ДЛЯ СБОРКИ И ДЕПЛОЯ ==
-REM ==============================================================================
+REM =============================================
+REM == BUILD AND DEPLOY SCRIPT ==
+REM =============================================
 
-REM --- Шаг 0: Запрашиваем сообщение для коммита ---
+REM Step 0: Prompt for commit message
 set "COMMIT_MSG="
-set /p COMMIT_MSG="Введите сообщение для коммита (описывающее изменения в исходном коде): 
+set /p COMMIT_MSG="Enter commit message: "
+if not defined COMMIT_MSG (
+    echo Error: Commit message cannot be empty.
+    goto :eof
+)
 
-REM --- Шаг 1: Коммит и пуш изменений в 'main' ---
-echo Шаг 1: Коммит и пуш изменений в 'main'...
+REM Step 1: Commit and push changes to 'main'
+echo.
+echo Step 1: Committing and pushing changes to 'main'...
 git checkout main
 if %errorlevel% neq 0 (
-    echo ? Ошибка: Не удалось переключиться на ветку 'main'.
+    echo Error: Failed to switch to 'main' branch.
     goto :eof
 )
 git add .
 
-REM ИСПОЛЬЗУЕМ !COMMIT_MSG! ВМЕСТО %COMMIT_MSG% ДЛЯ БЕЗОПАСНОЙ ОБРАБОТКИ СПЕЦСИМВОЛОВ
+REM Using !COMMIT_MSG! for safe handling of special characters
 git commit -m "!COMMIT_MSG!"
 if %errorlevel% neq 0 (
-    echo ??  Предупреждение: Возможно, нечего коммитить. Скрипт продолжит выполнение.
+    echo Warning: Nothing to commit, maybe. Script will continue.
 )
 
 git push origin main
 if %errorlevel% neq 0 (
-    echo ? Ошибка: Не удалось запушить изменения в 'main'.
+    echo Error: Failed to push changes to 'main'.
     goto :eof
 )
-echo ? Изменения в 'main' успешно отправлены.
+echo OK: Changes pushed to 'main' successfully.
 for /f "delims=" %%a in ('git rev-parse --short HEAD') do set "LAST_COMMIT_HASH=%%a"
 
-REM --- Шаг 2: Сборка Wasm ---
+REM Step 2: Build Wasm
 echo.
-echo >>> Шаг 2: Сборка Wasm-модуля...
+echo Step 2: Building Wasm module...
 wasm-pack build --target web
 if %errorlevel% neq 0 (
-    echo ? Ошибка: Сборка Wasm не удалась.
+    echo Error: Wasm build failed.
     goto :eof
 )
-echo ? Сборка Wasm завершена.
+echo OK: Wasm build finished.
 
-REM --- Шаг 3: Деплой в 'gh-pages' ---
+REM Step 3: Deploy to 'gh-pages'
 echo.
-echo >>> Шаг 3: Деплой артефактов в 'gh-pages'...
+echo Step 3: Deploying artifacts to 'gh-pages'...
 git checkout gh-pages
 if %errorlevel% neq 0 (
-    echo ? Ошибка: Не удалось переключиться на 'gh-pages'.
+    echo Error: Failed to switch to 'gh-pages'.
     git checkout main
     goto :eof
 )
 
-echo     -> Перемещение артефактов сборки и очистка...
+echo Moving build artifacts and cleaning up...
 if not exist "pkg\pathfinder_bg.wasm" (
-    echo ? Ошибка: Не найдены файлы сборки в директории 'pkg'.
+    echo Error: Build files not found in 'pkg' directory.
     git checkout main
     goto :eof
 )
@@ -63,22 +68,22 @@ move pkg\pathfinder_bg.wasm .
 move pkg\pathfinder.js .
 rmdir /s /q pkg
 
-echo     -> Коммит и пуш в 'gh-pages'...
+echo Committing and pushing to 'gh-pages'...
 git add pathfinder_bg.wasm pathfinder.js
-git commit -m "deploy: Сборка из коммита main@%LAST_COMMIT_HASH%"
+git commit -m "deploy: Build from commit main@%LAST_COMMIT_HASH%"
 git push origin gh-pages
 if %errorlevel% neq 0 (
-    echo ? Ошибка: Не удалось запушить изменения в 'gh-pages'.
+    echo Error: Failed to push changes to 'gh-pages'.
     git checkout main
     goto :eof
 )
-echo ? Артефакты успешно задеплоены.
+echo OK: Artifacts deployed successfully.
 
-REM --- Шаг 4: Возвращение на 'main' ---
+REM Step 4: Return to 'main'
 echo.
-echo >>> Шаг 4: Возвращение на ветку 'main'...
+echo Step 4: Returning to 'main' branch...
 git checkout main
 
 echo.
-echo ?? Всё готово! Исходный код и сборка были успешно отправлены на GitHub.
+echo All done!
 pause
