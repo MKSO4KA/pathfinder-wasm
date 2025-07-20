@@ -36,60 +36,6 @@ function passArray32ToWasm0(arg, malloc) {
     return ptr;
 }
 
-const cachedTextEncoder = (typeof TextEncoder !== 'undefined' ? new TextEncoder('utf-8') : { encode: () => { throw Error('TextEncoder not available') } } );
-
-const encodeString = (typeof cachedTextEncoder.encodeInto === 'function'
-    ? function (arg, view) {
-    return cachedTextEncoder.encodeInto(arg, view);
-}
-    : function (arg, view) {
-    const buf = cachedTextEncoder.encode(arg);
-    view.set(buf);
-    return {
-        read: arg.length,
-        written: buf.length
-    };
-});
-
-function passStringToWasm0(arg, malloc, realloc) {
-
-    if (realloc === undefined) {
-        const buf = cachedTextEncoder.encode(arg);
-        const ptr = malloc(buf.length, 1) >>> 0;
-        getUint8ArrayMemory0().subarray(ptr, ptr + buf.length).set(buf);
-        WASM_VECTOR_LEN = buf.length;
-        return ptr;
-    }
-
-    let len = arg.length;
-    let ptr = malloc(len, 1) >>> 0;
-
-    const mem = getUint8ArrayMemory0();
-
-    let offset = 0;
-
-    for (; offset < len; offset++) {
-        const code = arg.charCodeAt(offset);
-        if (code > 0x7F) break;
-        mem[ptr + offset] = code;
-    }
-
-    if (offset !== len) {
-        if (offset !== 0) {
-            arg = arg.slice(offset);
-        }
-        ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
-        const view = getUint8ArrayMemory0().subarray(ptr + offset, ptr + len);
-        const ret = encodeString(arg, view);
-
-        offset += ret.written;
-        ptr = realloc(ptr, len, offset, 1) >>> 0;
-    }
-
-    WASM_VECTOR_LEN = offset;
-    return ptr;
-}
-
 let cachedInt32ArrayMemory0 = null;
 
 function getInt32ArrayMemory0() {
@@ -104,29 +50,16 @@ function getArrayI32FromWasm0(ptr, len) {
     return getInt32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
 }
 /**
- * @param {number} start_x
- * @param {number} start_y
- * @param {number} goal_x
- * @param {number} goal_y
- * @param {Int32Array} costs_flat
- * @param {Int32Array} zone_types_flat
- * @param {Int32Array} teleporters_flat
- * @param {string} _player_skill
+ * @param {Int32Array} data
  * @returns {Int32Array}
  */
-export function find_path_on_grid_wasm(start_x, start_y, goal_x, goal_y, costs_flat, zone_types_flat, teleporters_flat, _player_skill) {
-    const ptr0 = passArray32ToWasm0(costs_flat, wasm.__wbindgen_malloc);
+export function find_path_on_grid_wasm(data) {
+    const ptr0 = passArray32ToWasm0(data, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray32ToWasm0(zone_types_flat, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ptr2 = passArray32ToWasm0(teleporters_flat, wasm.__wbindgen_malloc);
-    const len2 = WASM_VECTOR_LEN;
-    const ptr3 = passStringToWasm0(_player_skill, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len3 = WASM_VECTOR_LEN;
-    const ret = wasm.find_path_on_grid_wasm(start_x, start_y, goal_x, goal_y, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
-    var v5 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
+    const ret = wasm.find_path_on_grid_wasm(ptr0, len0);
+    var v2 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
-    return v5;
+    return v2;
 }
 
 function _assertClass(instance, klass) {
